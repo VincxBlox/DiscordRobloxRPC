@@ -19,7 +19,7 @@
 	3: Copy Application ID and paste it in cfg.json
 	4: Download source code and use either the python version (for debugging and whatnot?) or the .exe versions (there is one that runs in background and one shows a console)
 	5: Test it. If the game shows up on your profile, you should be good to go.
-	6: Set your images in cfg.json.
+	6: Set your images, interval, application ID in cfg.json.
 	
 	
 	
