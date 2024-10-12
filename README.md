@@ -6,9 +6,9 @@
  it will look for the global Roblox logs. It will then look for the place id, lookup the place ID to see the name of the game, then puts it 
  in the Discord RPC, it includes a timer, and logging to a file in local folder. I recommend putting it in your USER startup folder.
  Since you need cfg.json and dcrblx.log in the working folder, they may appear as a startup element in task manager. Just disable them, I don't think there is
- any real harm to this.
+ any real harm to this. if large_image in cfg.json is set to AUTO, it will fetch the game thumbnail from roblox CDN and use that.
  
- This is a very basic script but useful
+ This is a very basic script but useful.
  
  
  
@@ -19,13 +19,13 @@
 	3: Copy Application ID and paste it in cfg.json
 	4: Download source code and use either the python version (for debugging and whatnot?) or the .exe versions (there is one that runs in background and one shows a console)
 	5: Test it. If the game shows up on your profile, you should be good to go.
-	6: Set your images, interval, application ID in cfg.json.
+	6: Set your image, interval, application ID in cfg.json.
 	
 	
 	
  WHAT DOES THIS do
  
- It allows to show the game you are playing instead of just saying "Playing Roblox".
+ It allows to show the game you are playing instead of just saying "Playing Roblox", and can also fetch the game thumbnails and apply that in Discord or use your own image.
  
 ![alt text](https://cdn.discordapp.com/attachments/1274361789324328992/1289783763202605219/image.png?ex=66fc0e7c&is=66fabcfc&hm=b13d40334bcf87d1dfefb239c51b3327c150877468774865be6318c6bdb2c979& "Updated")
 ![alt text](https://cdn.discordapp.com/attachments/1274361789324328992/1289785839550992534/image.png?ex=66fc106b&is=66fabeeb&hm=705db7c5e632e956939831900477381f9781b4d913fa2cc4ff971cc5ae28e374& "Generic")
