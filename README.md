@@ -27,6 +27,6 @@
  
  It allows to show the game you are playing instead of just saying "Playing Roblox", and can also fetch the game thumbnails and apply that in Discord or use your own image.
  
-![alt text](https://cdn.discordapp.com/attachments/1274361789324328992/1289783763202605219/image.png?ex=66fc0e7c&is=66fabcfc&hm=b13d40334bcf87d1dfefb239c51b3327c150877468774865be6318c6bdb2c979& "Updated")
-![alt text](https://cdn.discordapp.com/attachments/1274361789324328992/1289785839550992534/image.png?ex=66fc106b&is=66fabeeb&hm=705db7c5e632e956939831900477381f9781b4d913fa2cc4ff971cc5ae28e374& "Generic")
+![alt text](https://i.imgur.com/mGODdiB.png "Updated")
+![alt text](https://i.imgur.com/xjBYIET.png "Generic")
 
