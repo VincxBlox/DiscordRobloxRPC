@@ -1,6 +1,5 @@
 {
     "app_id": "INSERT_APP_ID_FROM_DEV_PORTAL",
 	"interval": "3",
-    "large_image": "https://www.citypng.com/public/uploads/preview/hd-roblox-square-android-ios-app-logo-icon-png-70175169478746776ph2tfiuz.png",
-    "small_image": "https://www.citypng.com/public/uploads/preview/hd-roblox-square-android-ios-app-logo-icon-png-70175169478746776ph2tfiuz.png"
+    "large_image": "AUTO"
 }

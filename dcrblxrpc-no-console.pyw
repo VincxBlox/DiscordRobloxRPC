@@ -19,23 +19,27 @@ CONFIG_FILE = 'cfg.json'
 rpc_open = False
 rpc_tryna_connect = False
 
+# Helper function to log and print messages
+def log_and_print(message):
+    logging.info(message)
+    print(message)
+
 # Function to create a default config file if it doesn't exist
 def create_default_config():
     default_config = {
         "interval": "3",
         "app_id": "INSERT_APP_ID",
-        "large_image": "https://cdn.discordapp.com/app-icons/363445589247131668/f2b60e350a2097289b3b0b877495e55f.webp?size=160&keep_aspect_ratio=false",
-        "small_image": "https://cdn.discordapp.com/app-icons/363445589247131668/f2b60e350a2097289b3b0b877495e55f.webp?size=160&keep_aspect_ratio=false"
+        "large_image": "AUTO"
     }
     with open(CONFIG_FILE, 'w') as f:
         json.dump(default_config, f, indent=4)
-    print(f"Created {CONFIG_FILE}. Please enter your Discord app_id.")
+    log_and_print(f"Created {CONFIG_FILE}. Please enter your Discord app_id.")
     logging.info(f"Created {CONFIG_FILE}. Prompting user to fill in the details.")
 
 # Load configuration from cfg.json
 if not os.path.exists(CONFIG_FILE):
     create_default_config()
-    print(f"Error: {CONFIG_FILE} is missing necessary information.")
+    log_and_print(f"Error: {CONFIG_FILE} is missing necessary information.")
     logging.error(f"{CONFIG_FILE} is missing. Created a new one.")
     time.sleep(10)
     exit()
@@ -44,7 +48,7 @@ with open(CONFIG_FILE, 'r') as f:
     try:
         config = json.load(f)
     except json.JSONDecodeError as e:
-        print(f"Error: Failed to parse {CONFIG_FILE}. Please check the file format.")
+        log_and_print(f"Error: Failed to parse {CONFIG_FILE}. Please check the file format.")
         logging.error(f"Failed to parse {CONFIG_FILE}: {e}")
         time.sleep(10)
         exit()
@@ -53,7 +57,7 @@ with open(CONFIG_FILE, 'r') as f:
 DISCORD_CLIENT_ID = config.get('app_id')
 
 if not DISCORD_CLIENT_ID:
-    print(f"Please fill in the required fields in {CONFIG_FILE} (app_id).")
+    log_and_print(f"Please fill in the required fields in {CONFIG_FILE} (app_id).")
     logging.error(f"Missing app_id in {CONFIG_FILE}.")
     time.sleep(10)
     exit()
@@ -70,17 +74,16 @@ def get_log_directory():
     user_log_dir = os.path.expandvars(r"C:\Users\%USERNAME%\AppData\Local\Roblox\logs")
     
     if os.path.exists(user_log_dir):
-        logging.info(f"Using user log directory: {user_log_dir}")
+        log_and_print(f"Using user log directory: {user_log_dir}")
         return user_log_dir
     else:
         logging.warning("User log directory not found, checking global location.")
         global_log_dir = r"C:\Program Files (x86)\Roblox\logs"
         if os.path.exists(global_log_dir):
-            logging.info(f"Using global log directory: {global_log_dir}")
+            log_and_print(f"Using global log directory: {global_log_dir}")
             return global_log_dir
         else:
-            logging.error("No valid log directory found!")
-            print("Error: Could not find Roblox logs in either user or global directories.")
+            log_and_print("Error: Could not find Roblox logs in either user or global directories.")
             return None
 
 # Function to get the latest log file
@@ -91,13 +94,61 @@ def get_latest_log():
 
     log_files = [os.path.join(log_dir, f) for f in os.listdir(log_dir) if f.endswith('.log')]
     if not log_files:
-        logging.error("No log files found.")
-        print("Error: No log files found in the log directory.")
+        log_and_print("Error: No log files found in the log directory.")
         return None
     
     latest_log = max(log_files, key=os.path.getmtime)
-    logging.info(f"Latest log file: {latest_log}")
+    log_and_print(f"Latest log file: {latest_log}")
+    
+    # Check if the log file is older than 5 minutes
+    log_age = time.time() - os.path.getmtime(latest_log)
+    if log_age > 300:  # 300 seconds = 5 minutes
+        log_and_print("Logs are too old, retrying...")
+        
+        # Retry getting the latest log from the global directory if needed
+        global_log_dir = r"C:\Program Files (x86)\Roblox\logs"
+        if os.path.exists(global_log_dir):
+            log_files = [os.path.join(global_log_dir, f) for f in os.listdir(global_log_dir) if f.endswith('.log')]
+            if not log_files:
+                log_and_print("Error: No log files found in the global directory.")
+                return None
+            
+            latest_log = max(log_files, key=os.path.getmtime)
+            log_age = time.time() - os.path.getmtime(latest_log)
+            if log_age > 300:  # Check again
+                log_and_print("Roblox is not installed or running properly!")
+                return None
+    
     return latest_log
+
+# Fetch large image URL based on the universe ID
+def fetch_large_image_url(universe_id):
+    url = "https://thumbnails.roblox.com/v1/batch"
+    data = [{
+        "requestId": f"{universe_id}::GameIcon:256x256:webp:regular",
+        "type": "GameIcon",
+        "targetId": universe_id,
+        "token": "",
+        "format": "webp",
+        "size": "256x256"
+    }]
+    try:
+        log_and_print(f"Fetching large image for universe ID: {universe_id}")
+        response = requests.post(url, headers={"Content-Type": "application/json"}, json=data)
+        if response.status_code == 200:
+            json_data = response.json()
+            if json_data['data']:
+                image_url = json_data['data'][0]['imageUrl']
+                log_and_print(f"Successfully fetched large image URL: {image_url}")
+                return image_url
+            else:
+                log_and_print(f"No image data returned for universe ID: {universe_id}")
+        else:
+            log_and_print(f"Failed to fetch image. Status Code: {response.status_code}")
+    except Exception as e:
+        log_and_print(f"Error: Could not fetch large image: {e}")
+    
+    return None
 
 # Function to find place ID in the log file
 def find_place_id(log_file):
@@ -109,57 +160,70 @@ def find_place_id(log_file):
                 match = re.search(LOG_REGEX, line)
                 if match:
                     place_id = match.group(1)
-                    logging.info(f"Found place ID: {place_id}")
+                    log_and_print(f"Found place ID: {place_id}")
                     return place_id
     except Exception as e:
-        logging.error(f"Error reading log file: {e}")
-        print(f"Error: Could not read the log file: {e}")
-    logging.warning("No place ID found in log.")
+        log_and_print(f"Error: Could not read the log file: {e}")
+    log_and_print("Warning: No place ID found in log.")
     return None
 
 # Function to get the game name from place ID
-def get_game_name(place_id):
+def get_game_details(place_id):
     url = f"https://www.roblox.com/games/{place_id}"
     try:
+        log_and_print(f"Fetching game details for place ID: {place_id}")
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
-        game_name_tag = soup.find("h1", class_="game-name")
-        if game_name_tag:
-            game_name = game_name_tag.text.strip()
-            logging.info(f"Game name: {game_name}")
-            return game_name
+        
+        # Extract the universe ID and game name from the HTML
+        game_meta_data = soup.find("div", id="game-detail-meta-data")
+        if game_meta_data:
+            universe_id = game_meta_data.get('data-universe-id')
+            game_name = game_meta_data.get('data-place-name')
+            log_and_print(f"Found universe ID: {universe_id} and game name: {game_name}")
+            return game_name, universe_id
+        else:
+            log_and_print(f"Game meta data not found for place ID: {place_id}")
     except Exception as e:
-        logging.error(f"Failed to fetch game name: {e}")
-        print(f"Error: Could not retrieve game name from Roblox: {e}")
-    return "Unknown Game"
+        log_and_print(f"Error: Could not retrieve game details from Roblox: {e}")
+    
+    return "Unknown Game", None
 
 # Function to update Discord RPC
-def update_discord_rpc(game_name, start_time):
+def update_discord_rpc(game_name, start_time, universe_id=None):
     try:
+        large_image_url = config.get('large_image')
+
+        # If the large image is set to AUTO, fetch the actual image URL using universe ID
+        if large_image_url == "AUTO" and universe_id:
+            large_image_url = fetch_large_image_url(universe_id)
+        
+        # Default to configured large image if AUTO fetching fails
+        if not large_image_url:
+            large_image_url = config.get('large_image')
+        
         rpc.update(
             state=f"Playing {game_name}",
-            large_image=config.get('large_image'),
-            small_image=config.get('small_image'),
+            large_image=large_image_url,
             start=start_time
         )
-        logging.info(f"Updated Discord RPC for game: {game_name}")
-        print(f"Updated Discord RPC for game: {game_name}")
+        log_and_print(f"Updated Discord RPC for game: {game_name}")
     except Exception as e:
-        logging.error(f"Failed to update Discord RPC: {e}")
-        print(f"Error: Could not update Discord RPC: {e}")
+        log_and_print(f"Error: Could not update Discord RPC: {e}")
 
 # Function to monitor Roblox process
 def monitor_roblox_process():
-    rpc_open = False
+    global rpc_open  # Make sure to use the global variable
     start_time = None
     game_name = None
     place_id = None
     previous_game_name = None  # Store the previous game name
+    universe_id = None  # Store universe ID
 
     while True:
         # Check if Roblox process is running
         if "RobloxPlayerBeta.exe" in (p.name() for p in psutil.process_iter()):
-            logging.info("RobloxPlayerBeta.exe is running. Checking log...")
+            log_and_print("RobloxPlayerBeta.exe is running. Checking log...")
             interval_cfg22 = config.get('interval')
             interval_cfg = int(interval_cfg22)
             time.sleep(interval_cfg)
@@ -168,30 +232,27 @@ def monitor_roblox_process():
                 place_id = find_place_id(latest_log)
 
             if place_id:
-                game_name = get_game_name(place_id)
+                game_name, universe_id = get_game_details(place_id)
 
                 # Only update Discord RPC if the game name has changed
                 if game_name and game_name != previous_game_name:
                     start_time = int(time.time())
                     if rpc_open:
-                        update_discord_rpc(game_name, start_time)
+                        update_discord_rpc(game_name, start_time, universe_id)
                     else:
                         try:
                             rpc.connect()
                             rpc_open = True
-                            update_discord_rpc(game_name, start_time)
-                            logging.info("Discord RPC connected.")
-                            print("Discord RPC connected.")
+                            update_discord_rpc(game_name, start_time, universe_id)
+                            log_and_print("Discord RPC connected.")
                         except Exception as e:
-                            logging.error(f"Failed to connect Discord RPC: {e}")
-                            print(f"Error: Could not connect to Discord RPC: {e}")
+                            log_and_print(f"Error: Could not connect to Discord RPC: {e}")
 
                 previous_game_name = game_name  # Update the previous game name
 
         else:  # If the Roblox process is not running
             if rpc_open:
-                logging.info("Closing Discord RPC.")
-                print("Closing Discord RPC.")
+                log_and_print("Closing Discord RPC.")
                 rpc.close()
                 rpc_open = False
                 start_time = None
