@@ -7,6 +7,7 @@
  in the Discord RPC, it includes a timer, and logging to a file in local folder. I recommend putting it in your USER startup folder.
  Since you need cfg.json and dcrblx.log in the working folder, they may appear as a startup element in task manager. Just disable them, I don't think there is
  any real harm to this. if large_image in cfg.json is set to AUTO, it will fetch the game thumbnail from roblox CDN and use that.
+ Also disable detection level for Roblox for ppl who use MSI afterburner. You can do it yourself, but I thought this was neat.
  
  This is a very basic script but useful.
  
@@ -26,6 +27,7 @@
  WHAT DOES THIS do
  
  It allows to show the game you are playing instead of just saying "Playing Roblox", and can also fetch the game thumbnails and apply that in Discord or use your own image.
+ Also automatically turns off detection lvl in RTSS so roblox launches for ppl with MSI Afterburner
  
 ![alt text](https://i.imgur.com/mGODdiB.png "Updated")
 ![alt text](https://i.imgur.com/xjBYIET.png "Generic")

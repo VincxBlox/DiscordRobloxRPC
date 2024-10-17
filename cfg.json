@@ -1,5 +1,6 @@
 {
     "app_id": "INSERT_APP_ID_FROM_DEV_PORTAL",
 	"interval": "3",
-    "large_image": "AUTO"
+    "large_image": "AUTO",
+	"RTSSPatch": "True"
 }
