@@ -1,6 +1,8 @@
 {
-    "app_id": "INSERT_APP_ID_FROM_DEV_PORTAL",
+    "app_id": "insert_id_from_dev_portal",
 	"interval": "3",
     "large_image": "AUTO",
-	"RTSSPatch": "True"
+	"RTSSPatch": "True",
+	"ProfileButton": "AUTO",
+	"GameButton": "AUTO"
 }
