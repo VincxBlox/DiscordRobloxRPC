@@ -34,7 +34,9 @@ def create_default_config():
         "interval": "3",
         "app_id": "INSERT_APP_ID",
         "large_image": "AUTO",
-        "RTSSPatch": "True"
+        "RTSSPatch": "True",
+        "ProfileButton": "AUTO",
+        "GameButton": "AUTO"
     }
     with open(CONFIG_FILE, 'w') as f:
         json.dump(default_config, f, indent=4)
@@ -72,7 +74,7 @@ RTSS_PATCH = config.get('RTSSPatch', "True").lower() == "true"
 rpc = Presence(DISCORD_CLIENT_ID)
 
 # Regex pattern for detecting game join messages
-LOG_REGEX = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z,\d+\.\d+,\w+,\d+ \[FLog::Output\] ! Joining game '[\w-]+' place (\d+) at [\d.]+"
+LOG_REGEX = r"placeid:(\d+),.*universeid:(\d+),.*userid:(\d+),"
 
 # Function to determine the log directory based on user/global install
 def get_log_directory():
@@ -192,31 +194,97 @@ def get_game_details(place_id):
         log_and_print(f"Error: Could not retrieve game details from Roblox: {e}")
 
     return "Unknown Game", None
+    
+    
+    
+def fetch_user_display_name(user_id):
+    url = f"https://www.roblox.com/users/{user_id}/profile"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+    }
+    try:
+        log_and_print(f"Fetching display name for user ID: {user_id}")
+        response = requests.get(url, headers=headers)
+        
+        # Check the response status
+        if response.status_code != 200:
+            log_and_print(f"Error: HTTP request failed with status code {response.status_code}")
+            return "User"
 
-# Function to update Discord RPC
-def update_discord_rpc(game_name, start_time, universe_id=None):
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Find the <title> tag
+        title_tag = soup.find("title")
+        if title_tag:
+            full_title = title_tag.text.strip()
+            # Remove the last 9 characters, including the space
+            display_name = full_title[:-9]
+            log_and_print(f"Successfully fetched display name: {display_name}")
+            return display_name
+        else:
+            log_and_print("Error: Title tag not found in the page")
+            return "User"
+    except Exception as e:
+        log_and_print(f"Error: Could not fetch display name: {e}")
+        return "User"
+        
+        
+def update_discord_rpc(game_name, start_time, universe_id, user_id, place_id):
     try:
         large_image_url = config.get('large_image')
 
-        # If the large image is set to AUTO, fetch the actual image URL using universe ID
+        # Fetch large image dynamically if set to AUTO
         if large_image_url == "AUTO" and universe_id:
             large_image_url = fetch_large_image_url(universe_id)
 
-        # Default to configured large image if AUTO fetching fails
+        # Fallback to large image in config if fetching fails
         if not large_image_url:
             large_image_url = config.get('large_image')
 
-        rpc.update(
+        # Create buttons for user profile and game
+        buttons = []
+        
+        # Handle Profile Button
+        profile_button_setting = config.get('ProfileButton', 'AUTO')
+        if user_id:
+            if profile_button_setting == "AUTO":
+                display_name = fetch_user_display_name(user_id)
+                buttons.append({"label": display_name, "url": f"https://www.roblox.com/users/{user_id}/profile"})
+                print("Profile button added with display name.")
+            elif profile_button_setting != "False":
+                buttons.append({"label": profile_button_setting, "url": f"https://www.roblox.com/users/{user_id}/profile"})
+                print("Profile button added with custom label.")
+        
+        # Handle Game Button
+        game_button_setting = config.get('GameButton', 'AUTO')
+        if place_id:
+            if game_button_setting == "AUTO":
+                buttons.append({"label": game_name, "url": f"https://www.roblox.com/games/{place_id}/"})
+                print("Game button added with game name.")
+            elif game_button_setting != "False":
+                buttons.append({"label": game_button_setting, "url": f"https://www.roblox.com/games/{place_id}/"})
+                print("Game button added with custom label.")
+        
+        # Update Discord Presence with the new state
+        uhm_any_button = config.get('ProfileButton', 'False')
+        uhm_any_button2 = config.get('GameButton', 'False')
+        if uhm_any_button != "False" and uhm_any_button2 != "False":
+            rpc.update(
+            state=f"Playing {game_name}",
+            large_image=large_image_url,
+            start=start_time,
+            buttons=buttons  # Add the buttons
+            )
+
+        else:
+            rpc.update(
             state=f"Playing {game_name}",
             large_image=large_image_url,
             start=start_time
-        )
-        log_and_print(f"Updated Discord RPC for game: {game_name}")
+            )
+
     except Exception as e:
         log_and_print(f"Error: Could not update Discord RPC: {e}")
-        
-        
-        
         
         
 def restart_msi_afterburner(path):
@@ -390,6 +458,26 @@ def create_config_file():
     # Execute the batch file with elevated privileges
     command = ['powershell.exe', '-Command', f'Start-Process cmd.exe -ArgumentList "/c {temp_batch_file_path}" -Verb RunAs']
     runCmd(command)
+    
+    
+    
+    
+def find_ids_in_log(log_file):
+    if not log_file:
+        return None, None, None
+    try:
+        with open(log_file, 'r', encoding='utf-8') as f:
+            for line in f:
+                match = re.search(LOG_REGEX, line)
+                if match:
+                    place_id, universe_id, user_id = match.groups()
+                    log_and_print(f"Found place ID: {place_id}, universe ID: {universe_id}, user ID: {user_id}")
+                    return place_id, universe_id, user_id
+    except Exception as e:
+        log_and_print(f"Error: Could not read the log file: {e}")
+    log_and_print("Warning: No place ID found in log.")
+    print("shit fucked up")
+    return None, None, None
 
 
 
@@ -423,7 +511,8 @@ def monitor_roblox_process():
                             try:
                                 rpc.connect()
                                 rpc_open = True
-                                update_discord_rpc(game_name, start_time, universe_id)
+                                place_id, universe_id, user_id = find_ids_in_log(latest_log)
+                                update_discord_rpc(game_name, start_time, universe_id, user_id, place_id)
                                 log_and_print("Discord RPC connected.")
                             except Exception as e:
                                 log_and_print(f"Error: Could not connect to Discord RPC: {e}")
@@ -437,3 +526,5 @@ def monitor_roblox_process():
 
 if __name__ == "__main__":
     monitor_roblox_process()
+
+
